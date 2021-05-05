@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1620239928839.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "69BA3912",
+    "lastKnownWriteTime" : 1620239978,
+    "last_content_update" : 1620239978693,
+    "path" : "~/Projects/name_smash/data/top1000_boys.txt",
+    "project_path" : "data/top1000_boys.txt",
+    "properties" : {
+        "cursorPosition" : "1000,0",
+        "scrollLine" : "983",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "text"
+}
