@@ -1,10 +1,11 @@
 library(shiny)
 library(shinyWidgets)
 library(shinythemes)
+library(shinyalert)
 library(elo)
 
 boys <- readLines("data/top1000_boys.txt")
-boys <- boys[1:10]
+boys <- boys[1:20]
 button_colour <- "primary"
 
 elo_df <- data.frame(names = boys,
@@ -52,6 +53,7 @@ ui <-
                 tags$link(rel = "icon", type = "image/png", href = "https://www.kindpng.com/picc/m/205-2051178_wild-thornberrys-nigel-meme-face-hd-png-download.png"),
               "NameSmash"
             ),
+            useShinyalert(),
             column(4,offset = 4,align = "center",
                    hr(),
                    h2("NameSmash"),
@@ -83,31 +85,49 @@ ui <-
   )
 
 server <- function(input, output, session) {
+  observe({
+    shinyalert(title = "Welcome",
+               text = "Enter your name to get started",
+               inputType = "text",animation = "pop",
+               inputId = "user_name",
+               type = "input",
+               size = "m")
+  })
+  elo_fname <- reactive({paste0("user_data/",input$user_name,"/elo_df.txt")})
+  
+  
+  
+  observeEvent(input$user_name,{
+    dir.create(paste0("user_data/",input$user_name))
+    if(!file.exists(elo_fname())){
+      write.table(elo_df,elo_fname())  
+    }
+  })
   current_ind <- reactive({input$name1 + input$name2 + 1})
   
   output$counter <- renderText(current_ind())
   observeEvent(input$name1,{
-    elo_df <- read.table("elo_df.txt",stringsAsFactors = FALSE)
+    elo_df <- read.table(elo_fname(),stringsAsFactors = FALSE)
     this_result <- data.frame(name1 = competitions$name1[current_ind()-1],
                               name2 = competitions$name2[current_ind()-1],
                               outcome = 1,stringsAsFactors = FALSE)
     new_elo <- update_elo(elo_df = elo_df,this_result)
-    write.table(new_elo,"elo_df.txt")
+    write.table(new_elo,elo_fname())
     updateActionButton(session,inputId = "name1",label = competitions$name1[current_ind()])
     updateActionButton(session,inputId = "name2",label = competitions$name2[current_ind()])
   })
   observeEvent(input$name2,{
-    elo_df <- read.table("elo_df.txt",stringsAsFactors = FALSE)
+    elo_df <- read.table(elo_fname(),stringsAsFactors = FALSE)
     this_result <- data.frame(name1 = competitions$name1[current_ind()-1],
                               name2 = competitions$name2[current_ind()-1],
                               outcome = 0,stringsAsFactors = FALSE)
     new_elo <- update_elo(elo_df = elo_df,this_result)
-    write.table(new_elo,"elo_df.txt")
+    write.table(new_elo,elo_fname())
     updateActionButton(session,inputId = "name1",label = competitions$name1[current_ind()])
     updateActionButton(session,inputId = "name2",label = competitions$name2[current_ind()])
   })
   get_top <- eventReactive(c(input$name1,input$name2),{
-    elo_df <- read.table("elo_df.txt")
+    elo_df <- read.table(elo_fname())
     elo_df <- elo_df[sort.int(elo_df$elo,decreasing = TRUE,index.return = TRUE)$ix,]
     elo_df$elo <- round(elo_df$elo)
     class(elo_df$elo) <- "integer"
@@ -115,8 +135,6 @@ server <- function(input, output, session) {
     elo_df
   })
   output$elo_top <- renderTable(get_top())
-  
-  
 }
 
-shinyApp(ui, server)
+shinyApp(ui = ui, server = server)
