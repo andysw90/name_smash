@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1621545704980.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "5E83F466",
+    "lastKnownWriteTime" : 140259615253088,
+    "last_content_update" : 1621545704980,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "28EB92C2",
+        "caption" : "girls_names",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=girls_names&cache_key=28EB92C2",
+        "displayedObservations" : 11,
+        "environment" : "",
+        "expression" : "girls_names",
+        "object" : "girls_names",
+        "preview" : 0,
+        "totalObservations" : 11,
+        "variables" : 2
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

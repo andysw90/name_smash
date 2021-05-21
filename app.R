@@ -2,89 +2,103 @@ library(shiny)
 library(shinyWidgets)
 library(shinythemes)
 library(shinyalert)
+library(shinydashboard)
 library(elo)
+library(ggplot2)
+library(ggrepel)
+library(plotly)
+library(ggbump)
+library(openxlsx)
+library(stringr)
+source("src/functions.R")
 
-boys <- readLines("data/top1000_boys.txt")
-boys <- boys[1:20]
+# boys <- readLines("data/top1000_boys.txt")
+# boys <- boys[1:50]
+
+boys_names <- read.xlsx("data/2019boysnames.xlsx",sheet = 4)[-c(1:4),2]
+girls_names <- read.xlsx("data/2019girlsnames.xlsx",sheet = 4)[-c(1:4),2]
+boys_names <- str_to_title(boys_names[-which(is.na(boys_names))])
+girls_names <- str_to_title(girls_names[-which(is.na(girls_names))])
+
 button_colour <- "primary"
 
-elo_df <- data.frame(names = boys,
-                     elo = 1500,
-                     wins = 0,
-                     losses = 0,stringsAsFactors = FALSE)
-competitions <- data.frame(t(combn(boys,m = 2)),stringsAsFactors = FALSE)
-competitions <- competitions[sample(x = 1:nrow(competitions),size = nrow(competitions),replace = FALSE),]
-colnames(competitions) <- c("name1","name2")
+ui <- #####
+fluidPage(theme = shinytheme("journal"),
+          useShinydashboard(),
+          tabsetPanel(id = "tabs",
+                      tabPanel("Name vs name",value = "name_vs_name",
+                               titlePanel(
+                                 title =
+                                   tags$link(rel = "icon", type = "image/png", 
+                                             href = "https://www.kindpng.com/picc/m/205-2051178_wild-thornberrys-nigel-meme-face-hd-png-download.png"),
+                                 "NameSmash"
+                               ),
+                               useShinyalert(),
+                               column(4,offset = 4,align = "center",
+                                      hr(),
+                                      h2("NameSmash"),
+                                      switchInput(
+                                        inputId = "gender",
+                                        onLabel = "Boys",
+                                        offLabel = "Girls",
+                                        label = "Gender", 
+                                        labelWidth = "80px"
+                                      ),
+                                      hr()),
+                               hr(),
+                               fluidRow(
+                                 column(3,offset = 3,align = "center",
+                                        hr(),
+                                        actionBttn("name1",
+                                                   style = "minimal", 
+                                                   color = button_colour,
+                                                   label = "A")),#competitions[1,1])),
+                                 column(3,align = "center",
+                                        hr(),
+                                        actionBttn("name2",
+                                                   style = "minimal", 
+                                                   color = button_colour,
+                                                   label = "B"))#competitions[1,2])),
+                               ),
+                               fluidRow(
+                                 hr(),
+                                 column(4,offset = 4,align = "center",
+                                        box(title = "Results",solidHeader = FALSE,width = 12,
+                                            collapsible = TRUE,collapsed = TRUE,
+                                            tableOutput("elo_top")))
+                               ),
+                               textOutput("counter")
+                      ),
+                      tabPanel("Partner vs partner",
+                               value = "partner_vs_partner",
+                               textInput("partner_name",label = "Partner name:"),
+                               
+                               # verbatimTextOutput("partner_name_out"),
+                               textOutput("user_partner_out"),
+                               tags$head(tags$style("#user_partner_out{color: black;
+                                 font-size: 20px;
+                                 text-align: center;
+                                 font-style: italic;
+                                 }")
+                               ),
+                               fluidRow(
+                                 column(5,
+                                        box(title = "Results",width = 12,
+                                            tableOutput("shared_data"))),
+                                 
+                                 column(7,
+                                        box(title = "Plot",width = 12,
+                                            plotlyOutput("favourites_plot",width = "100%",height = "400px")))
+                               )
+                      ))
+          # column(2,plotOutput("ranked_plot",width = "100%"))
+          
+          
+)
 
-write.table(competitions,"competitions_df.txt")
-write.table(elo_df,"elo_df.txt")
-
-update_elo <- function(elo_df,this_result){
+server <- function(input, output, session) { #####
   
-  name1_ind <- which(elo_df$names==this_result$name1)
-  name2_ind <- which(elo_df$names==this_result$name2)
-  
-  # Pre-match ratings
-  name1_elo <- elo_df$elo[name1_ind]
-  name2_elo <- elo_df$elo[name2_ind]
-  
-  # Let's update our ratings
-  new_elo <- elo.calc(wins.A = this_result$outcome,
-                      elo.A = name1_elo,
-                      elo.B = name2_elo,
-                      k = 50)
-  elo_df$elo[name1_ind] <- new_elo$elo.A
-  elo_df$elo[name2_ind] <- new_elo$elo.B
-  
-  if(this_result$outcome==1){
-    elo_df$wins[name1_ind] <- elo_df$wins[name1_ind] + 1  
-    elo_df$losses[name2_ind] <- elo_df$losses[name2_ind] + 1
-  }else{
-    elo_df$wins[name2_ind] <- elo_df$wins[name2_ind] + 1
-    elo_df$losses[name1_ind] <- elo_df$losses[name1_ind] + 1
-  }
-  
-  return(elo_df)
-}
-ui <- 
-  fluidPage(theme = shinytheme("journal"),
-            titlePanel(
-              title =
-                tags$link(rel = "icon", type = "image/png", href = "https://www.kindpng.com/picc/m/205-2051178_wild-thornberrys-nigel-meme-face-hd-png-download.png"),
-              "NameSmash"
-            ),
-            useShinyalert(),
-            column(4,offset = 4,align = "center",
-                   hr(),
-                   h2("NameSmash"),
-                   hr()),
-            
-            
-            fluidRow(
-              
-              column(3,offset = 3,align = "center",
-                     hr(),
-                     actionBttn("name1",
-                                style = "minimal", 
-                                color = button_colour,
-                                label = competitions[1,1])),
-              column(3,align = "center",
-                     hr(),
-                     actionBttn("name2",
-                                style = "minimal", 
-                                color = button_colour,
-                                label = competitions[1,2])),
-              
-              
-            ),
-            fluidRow(
-              column(4,offset = 4,align = "center",
-                     tableOutput("elo_top"))
-            ),
-            textOutput("counter")
-  )
-
-server <- function(input, output, session) {
+  # Alert to get username
   observe({
     shinyalert(title = "Welcome",
                text = "Enter your name to get started",
@@ -93,41 +107,93 @@ server <- function(input, output, session) {
                type = "input",
                size = "m")
   })
-  elo_fname <- reactive({paste0("user_data/",input$user_name,"/elo_df.txt")})
   
-  
-  
-  observeEvent(input$user_name,{
-    dir.create(paste0("user_data/",input$user_name))
-    if(!file.exists(elo_fname())){
-      write.table(elo_df,elo_fname())  
-    }
+  # Text confirmed who is compared
+  output$user_partner_out <- renderText({
+    paste0(input$user_name," against ",input$partner_name)
   })
-  current_ind <- reactive({input$name1 + input$name2 + 1})
   
-  output$counter <- renderText(current_ind())
+  # observeEvent(input$gender,{
+  #   current_ind <- as.numeric(readLines(progress_fname()))
+  #   updateActionButton(session = session,inputId = "name1",
+  #                      label = competitions()$name1[current_ind])
+  #   updateActionButton(session = session,inputId = "name2",
+  #                      label = competitions()$name2[current_ind])
+  # })
+  
+  # Reactives to set up folder name, gender, names list, progress filename
+  names_in <- reactive({if(input$gender){boys_names}else{girls_names}})
+  gender <- reactive({if(input$gender){"Boys"}else{"Girls"}})
+  elo_user_folder <- reactive(paste0("user_data/",input$user_name,"_",gender()))
+  elo_partner_folder <- reactive(paste0("user_data/",input$partner_name,"_",gender()))
+  
+  elo_user_fname <- reactive(paste0(elo_user_folder(),"/elo_df.txt"))
+  elo_partner_fname <- reactive(paste0(elo_partner_folder(),"/elo_df.txt"))
+  
+  progress_fname <- reactive(paste0(elo_user_folder(),"/progress.txt"))
+  
+  # If username or gender is changed, check if file exists and make it if not
+  observeEvent(c(input$user_name,
+                 input$gender),{
+                   print(elo_user_folder())
+                   dir.create(elo_user_folder())
+                   if(!file.exists(elo_user_fname())){
+                     write.table(get_blank_elo(names_in = names_in()),elo_user_fname())
+                   }
+                   if(!file.exists(progress_fname())){
+                     writeLines("1",progress_fname())
+                   }
+                   
+                   current_ind <- as.numeric(readLines(progress_fname()))
+                   updateActionButton(session,inputId = "name1",label = competitions()$name1[current_ind]) ### Removed current_ind+1
+                   updateActionButton(session,inputId = "name2",label = competitions()$name2[current_ind])
+                   
+                   # updateActionButton(session = session,inputId = "name1",
+                   #                    label = competitions()$name1[current_ind])
+                   # updateActionButton(session = session,inputId = "name2",
+                   #                    label = competitions()$name2[current_ind])
+                 })
+  
+  # get_progress <- reactive()
+  # current_ind <- 
+  #   observeEvent(input,{
+  #     print("---")
+  #     get_progress()
+  #   })#reactive({input$name1 + input$name2 + 1})
+  
+  competitions <- reactive(get_competitions(names_in = names_in()))
+  
+  # output$counter <- renderText(readLines(progress_fname()))
   observeEvent(input$name1,{
-    elo_df <- read.table(elo_fname(),stringsAsFactors = FALSE)
-    this_result <- data.frame(name1 = competitions$name1[current_ind()-1],
-                              name2 = competitions$name2[current_ind()-1],
+    elo_df <- read.table(elo_user_fname(),stringsAsFactors = FALSE)
+    current_ind <- as.numeric(readLines(progress_fname()))
+    
+    this_result <- data.frame(name1 = competitions()$name1[current_ind],
+                              name2 = competitions()$name2[current_ind],
                               outcome = 1,stringsAsFactors = FALSE)
     new_elo <- update_elo(elo_df = elo_df,this_result)
-    write.table(new_elo,elo_fname())
-    updateActionButton(session,inputId = "name1",label = competitions$name1[current_ind()])
-    updateActionButton(session,inputId = "name2",label = competitions$name2[current_ind()])
+    write.table(new_elo,elo_user_fname())
+    
+    updateActionButton(session,inputId = "name1",label = competitions()$name1[current_ind+1])
+    updateActionButton(session,inputId = "name2",label = competitions()$name2[current_ind+1])
+    writeLines(as.character(as.numeric(readLines(progress_fname())) + 1),
+               progress_fname())
   })
   observeEvent(input$name2,{
-    elo_df <- read.table(elo_fname(),stringsAsFactors = FALSE)
-    this_result <- data.frame(name1 = competitions$name1[current_ind()-1],
-                              name2 = competitions$name2[current_ind()-1],
+    elo_df <- read.table(elo_user_fname(),stringsAsFactors = FALSE)
+    current_ind <- as.numeric(readLines(progress_fname()))
+    this_result <- data.frame(name1 = competitions()$name1[current_ind],
+                              name2 = competitions()$name2[current_ind],
                               outcome = 0,stringsAsFactors = FALSE)
     new_elo <- update_elo(elo_df = elo_df,this_result)
-    write.table(new_elo,elo_fname())
-    updateActionButton(session,inputId = "name1",label = competitions$name1[current_ind()])
-    updateActionButton(session,inputId = "name2",label = competitions$name2[current_ind()])
+    write.table(new_elo,elo_user_fname())
+    updateActionButton(session,inputId = "name1",label = competitions()$name1[current_ind+1])
+    updateActionButton(session,inputId = "name2",label = competitions()$name2[current_ind+1])
+    writeLines(as.character(as.numeric(readLines(progress_fname())) + 1),
+               progress_fname())
   })
-  get_top <- eventReactive(c(input$name1,input$name2),{
-    elo_df <- read.table(elo_fname())
+  get_top <- eventReactive(c(input$name1,input$name2,input$gender),{
+    elo_df <- read.table(elo_user_fname())
     elo_df <- elo_df[sort.int(elo_df$elo,decreasing = TRUE,index.return = TRUE)$ix,]
     elo_df$elo <- round(elo_df$elo)
     class(elo_df$elo) <- "integer"
@@ -135,6 +201,20 @@ server <- function(input, output, session) {
     elo_df
   })
   output$elo_top <- renderTable(get_top())
+  
+  reactive({message(input$partner_name)})
+  reactive({message(input$user_name)})
+  
+  shared_data <- reactive({get_shared_data(elo_user_fname(),
+                                           elo_partner_fname())})
+  output$shared_data <- renderTable(shared_data())
+  
+  output$favourites_plot <- renderPlotly(get_fav_plot(shared_data(),
+                                                      user_name = input$user_name,
+                                                      partner_name = input$partner_name))
+  # output$ranked_plot <- renderPlot(get_rank_plot(shared_data(),
+  #                                                user_name = input$user_name,
+  #                                                partner_name = input$partner_name))
 }
 
 shinyApp(ui = ui, server = server)

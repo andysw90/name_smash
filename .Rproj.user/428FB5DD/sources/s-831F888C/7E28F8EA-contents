@@ -1,0 +1,100 @@
+get_blank_elo <- function(names_in){
+  elo_df <- data.frame(names = names_in,
+                       elo = 1500,
+                       wins = 0,
+                       losses = 0,stringsAsFactors = FALSE)  
+}
+get_competitions <- function(names_in){
+  competitions <- data.frame(t(combn(names_in,m = 2)),stringsAsFactors = FALSE)
+  competitions <- competitions[sample(x = 1:nrow(competitions),size = nrow(competitions),replace = FALSE),]
+  colnames(competitions) <- c("name1","name2")  
+  return(competitions)
+}
+
+# write.table(competitions,"competitions_df.txt")
+# write.table(elo_df,"elo_df.txt")
+
+update_elo <- function(elo_df,this_result){
+  # saveRDS(elo_df,"elodf.rds")
+  # saveRDS(this_result,"result.rds")
+  # elo_df <- readRDS("elodf.rds")
+  # this_result <- readRDS("result.rds")
+  
+  name1_ind <- which(elo_df$names==this_result$name1)
+  name2_ind <- which(elo_df$names==this_result$name2)
+  
+  # Pre-match ratings
+  name1_elo <- elo_df$elo[name1_ind]
+  name2_elo <- elo_df$elo[name2_ind]
+  
+  # Let's update our ratings
+  new_elo <- elo.calc(wins.A = this_result$outcome,
+                      elo.A = name1_elo,
+                      elo.B = name2_elo,
+                      k = 50)
+  elo_df$elo[name1_ind] <- new_elo$elo.A
+  elo_df$elo[name2_ind] <- new_elo$elo.B
+  
+  if(this_result$outcome==1){
+    elo_df$wins[name1_ind] <- elo_df$wins[name1_ind] + 1  
+    elo_df$losses[name2_ind] <- elo_df$losses[name2_ind] + 1
+  }else{
+    elo_df$wins[name2_ind] <- elo_df$wins[name2_ind] + 1
+    elo_df$losses[name1_ind] <- elo_df$losses[name1_ind] + 1
+  }
+  
+  return(elo_df)
+}
+get_shared_data <- function(user_name,partner_name){
+  
+  # user_name <- "Andy"
+  # partner_name <- "Frankie"
+  # print("...")
+  user_data <- read.table(paste0("user_data/",user_name,"/elo_df.txt"),
+                          stringsAsFactors = FALSE)
+  user_data <- user_data[order(user_data$elo,
+                               decreasing = TRUE),]
+  user_data$rank <- 1:nrow(user_data)
+  colnames(user_data) <- paste0("User ",colnames(user_data))
+  
+  partner_data <- read.table(paste0("user_data/",partner_name,"/elo_df.txt"),
+                             stringsAsFactors = FALSE)
+  partner_data <- partner_data[order(partner_data$elo,
+                                     decreasing = TRUE),]
+  partner_data$rank <- 1:nrow(partner_data)
+  colnames(partner_data) <- paste0("Partner ",colnames(partner_data))
+  
+  
+  shared_names <- intersect(user_data$`User names`,
+                            partner_data$`Partner names`)
+  
+  user_data_sorted <- user_data[match(shared_names,user_data$`User names`),]
+  partner_data_sorted <- partner_data[match(shared_names,partner_data$`Partner names`),]
+  
+  shared_data <- data.frame(cbind(Name = shared_names,
+                                  user_data_sorted[,c("User elo",
+                                                      "User rank")],
+                                  partner_data_sorted[,c("Partner elo",
+                                                         "Partner rank")]),stringsAsFactors = FALSE)
+  # print(class(shared_data))
+  return(shared_data)
+}
+get_fav_plot <- function(shared_data,user_name,partner_name){
+  elo_bounds <- c(min(c(shared_data$User.elo,shared_data$Partner.elo)),
+                  max(c(shared_data$User.elo,shared_data$Partner.elo)))
+  elo_product <- shared_data$User.elo * shared_data$Partner.elo
+  shared_data$`Top name` <- NA
+  top_ind <- sort.int(elo_product,index.return = TRUE,
+                      decreasing = TRUE)$ix[1:5]
+  shared_data$`Top name`[top_ind] <- as.character(shared_data$Name)[top_ind]
+  
+  g <- 
+    ggplot(shared_data,aes(x = User.elo,y = Partner.elo,label = Name)) + 
+    geom_vline(xintercept = 1500) +
+    geom_hline(yintercept = 1500) +
+    geom_point(aes(col = `Top name`)) + 
+    scale_color_discrete(name = "Top names") +
+    xlim(elo_bounds) + ylim(elo_bounds) +
+    xlab(user_name) + ylab(partner_name)
+  ggplotly(g)
+}

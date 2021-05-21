@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1621618555994.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "7E28F8EA",
+    "lastKnownWriteTime" : 1621618608,
+    "last_content_update" : 1621618608801,
+    "path" : "~/Projects/name_smash/src/functions.R",
+    "project_path" : "src/functions.R",
+    "properties" : {
+        "cursorPosition" : "20,40",
+        "scrollLine" : "0",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 7,
+    "source_on_save" : true,
+    "source_window" : "",
+    "type" : "r_source"
+}
